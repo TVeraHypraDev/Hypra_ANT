@@ -1,4 +1,6 @@
 import SwiftUI
+import OSLog
+private let log = Logger(subsystem: "Hypra_ANT", category: "Debug")
 
 struct ContentView: View {
     @Environment(\.openImmersiveSpace) private var openImmersiveSpace
@@ -16,8 +18,10 @@ struct ContentView: View {
                 ForEach(options, id: \.self) { name in
                     Button {
                         Task {
-                            appModel.selectedName = name
-                            _ = await openImmersiveSpace(id: "WorldSpace")
+                            log.info("Btn \(name) -> abrir ImmersiveSpace")
+                            appModel.selectedName = name               // 1) primero define el modelo
+                            let ok = await openImmersiveSpace(id: "WorldSpace")  // 2) ábrelo una sola vez
+                            log.info("openImmersiveSpace -> \(String(describing: ok), privacy: .public)")
                         }
                     } label: {
                         HStack {
@@ -27,6 +31,7 @@ struct ContentView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 10)
                     }
+
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)
                 }
