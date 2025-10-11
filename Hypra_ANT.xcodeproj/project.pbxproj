@@ -13,24 +13,12 @@
 /* Begin PBXFileReference section */
 		60A4A8302E99BE0900DB18FD /* Hypra_ANT.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Hypra_ANT.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		60A4A8342E99BE0900DB18FD /* RealityKitContent */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = RealityKitContent; sourceTree = "<group>"; };
+		60A4A8722E99BFA700DB18FD /* Hypra_ANT.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Hypra_ANT.xcodeproj; sourceTree = "<group>"; };
 /* End PBXFileReference section */
-
-/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		60A4A8482E99BE0A00DB18FD /* Exceptions for "Hypra_ANT" folder in "Hypra_ANT" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Info.plist,
-			);
-			target = 60A4A82F2E99BE0900DB18FD /* Hypra_ANT */;
-		};
-/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		60A4A8322E99BE0900DB18FD /* Hypra_ANT */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				60A4A8482E99BE0A00DB18FD /* Exceptions for "Hypra_ANT" folder in "Hypra_ANT" target */,
-			);
 			path = Hypra_ANT;
 			sourceTree = "<group>";
 		};
@@ -71,6 +59,13 @@
 				60A4A8342E99BE0900DB18FD /* RealityKitContent */,
 			);
 			path = Packages;
+			sourceTree = "<group>";
+		};
+		60A4A8732E99BFA700DB18FD /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -126,6 +121,12 @@
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 60A4A8312E99BE0900DB18FD /* Products */;
 			projectDirPath = "";
+			projectReferences = (
+				{
+					ProductGroup = 60A4A8732E99BFA700DB18FD /* Products */;
+					ProjectRef = 60A4A8722E99BFA700DB18FD /* Hypra_ANT.xcodeproj */;
+				},
+			);
 			projectRoot = "";
 			targets = (
 				60A4A82F2E99BE0900DB18FD /* Hypra_ANT */,
