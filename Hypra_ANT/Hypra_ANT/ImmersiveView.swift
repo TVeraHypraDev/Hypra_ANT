@@ -188,7 +188,7 @@ struct ImmersiveView: View {
             currentEntity = entity
 
             // Coloca el ancla frente al usuario (~1.2 m alto y 1.2 m adelante)
-            anchor.position = [0.0, 1.2, -1.2]
+            anchor.position = [-1.0, 1.2, -1.0]
 
             if let tuning = tunings[name] {
                 if let u = tuning.uniformScale {
