@@ -15,13 +15,46 @@ struct ModelTuning {
 }
 
 struct HandPanelView: View {
+    let selection: String?
+    let info: [String: PlaceInfo]
+
     var body: some View {
-        Text("Se muestran datos")
-            .font(.headline)
+        if let sel = selection, let p = info[sel] {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(sel).font(.headline)
+                HStack { Text("Aforo máximo:").bold(); Text("\(p.aforoMaximo)") }
+                HStack { Text("Metros cuadrados:").bold(); Text("\(p.m2) m²") }
+                HStack { Text("Año de construcción:").bold(); Text("\(p.anioConstruccion)") }
+                HStack { Text("Dirección:").bold(); Text(p.direccion) }
+            }
             .padding(12)
             .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14))
+        } else {
+            Text("Por favor selecciona un paisaje")
+                .font(.headline)
+                .padding(12)
+                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14))
+        }
     }
 }
+
+
+// Datos del panel
+struct PlaceInfo {
+    let aforoMaximo: Int
+    let m2: Int
+    let anioConstruccion: Int
+    let direccion: String
+}
+
+// Ajusta estos valores reales a tu proyecto
+private let placeInfo: [String: PlaceInfo] = [
+    "Parque":      .init(aforoMaximo: 1200, m2: 8500, anioConstruccion: 1998, direccion: "Cra 10 #20-30"),
+    "Edificio":    .init(aforoMaximo: 600,  m2: 4200, anioConstruccion: 2010, direccion: "Av. Central 123"),
+    "Iglesia":     .init(aforoMaximo: 400,  m2: 1800, anioConstruccion: 1954, direccion: "Calle 7 #5-12"),
+    "Parqueadero": .init(aforoMaximo: 300,  m2: 3200, anioConstruccion: 2018, direccion: "Transv. 4 #45-16"),
+]
+
 
 private let tunings: [String: ModelTuning] = [
     "Parque": .init(uniformScale: 0.2, position: [0, 0, 0]),
@@ -35,6 +68,7 @@ struct ImmersiveView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.openWindow) private var openWindow
     @State private var reopenedMainOnce = false
+    @State private var headAnchor = AnchorEntity(.head)
 
 
     @State private var anchor = AnchorEntity(
@@ -54,17 +88,21 @@ struct ImmersiveView: View {
     var body: some View {
         RealityView { content in
             content.add(anchor)
+            content.add(headAnchor)
 
             // Panel que seguirá la mano
             panel.components.set(BillboardComponent())
-            panel.components.set(
-                ViewAttachmentComponent(rootView: HandPanelView())
-            )
+            refreshPanelView()
             panel.isEnabled = false
-            content.add(panel)
+            headAnchor.addChild(panel)
+        }update: { content in
+            // ⬇️ Mueve el panel para que siempre quede frente a la cabeza
+            
         }
         .onChange(of: showHandPanel) { newValue in
             panel.isEnabled = newValue
+        }.onChange(of: appModel.selectedName) { _ in
+            refreshPanelView()
         }
         .task(id: appModel.selectedName) {
             if let name = appModel.selectedName {
@@ -309,29 +347,31 @@ struct ImmersiveView: View {
                     "thumb(\(pT.x, format: .fixed(precision: 2)),\(pT.y, format: .fixed(precision: 2)),\(pT.z, format: .fixed(precision: 2)))  middle(\(pM.x, format: .fixed(precision: 2)),\(pM.y, format: .fixed(precision: 2)),\(pM.z, format: .fixed(precision: 2)))  dist=\(d, format: .fixed(precision: 3))"
                 )
 
-                let pinch = d < 0.064   // 7 cm funciona con tus valores (0.064 entra, 0.12 no)
+                let pinch = d < 0.02   // 7 cm funciona con tus valores (0.064 entra, 0.12 no)
 
 
                 await MainActor.run {
-                    if showHandPanel != pinch {
-                        htLog.info(
-                            "showHandPanel -> \(pinch, privacy: .public)"
-                        )
+                        showHandPanel = pinch
+                        panel.isEnabled = pinch
+                        if pinch {
+                            // Coloca el panel 60 cm delante de la cabeza (en el anchor .head)
+                            panel.position = [0, 0, -0.6]
+                        }
                     }
-                    showHandPanel = pinch
-                    if pinch {
-                        let mid = (pT + pM) * Float(0.5)
-                        panel.position = mid + SIMD3<Float>(0, 0.06, 0)
-                        panel.isEnabled = true
-                    } else {
-                        panel.isEnabled = false
-                    }
-                }
             }  // for await
             htLog.info(
                 "anchorUpdates loop finalizado (handProvider dejó de emitir)"
             )
         }  // Task
+    }
+    
+    private func refreshPanelView() {
+        // Sustituimos el rootView para reflejar el estado actual
+        panel.components.set(
+            ViewAttachmentComponent(
+                rootView: HandPanelView(selection: appModel.selectedName, info: placeInfo)
+            )
+        )
     }
 
 }
