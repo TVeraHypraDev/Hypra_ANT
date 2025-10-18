@@ -69,6 +69,8 @@ struct ImmersiveView: View {
     @Environment(\.openWindow) private var openWindow
     @State private var reopenedMainOnce = false
     @State private var headAnchor = AnchorEntity(.head)
+    @State private var limitrofesBox: ModelEntity? = nil
+
 
 
     @State private var anchor = AnchorEntity(
@@ -121,6 +123,9 @@ struct ImmersiveView: View {
                 reopenedMainOnce = true
                 openWindow(id: "main")
             }
+        }.onChange(of: appModel.showLimitrofes) { on in
+            if on { Task { await MainActor.run { ensureLimitrofesBox() } } }
+            else   { Task { await MainActor.run { removeLimitrofesBox() } } }
         }
         .onChange(of: scenePhase) { phase in
             switch phase {
@@ -160,6 +165,77 @@ struct ImmersiveView: View {
         }
 
     }
+    
+    /// Crea (si hace falta) y ancla el cubo de limítrofes al currentEntity.
+    @MainActor
+    private func ensureLimitrofesBox() {
+        guard let e = currentEntity else { return }
+
+        // Si ya existe, solo actualiza tamaño y asegúrate que está colgado del entity
+        if let box = limitrofesBox {
+            if box.parent != e { box.removeFromParent(); e.addChild(box) }
+            applyLimitrofesSize(box)
+            box.isEnabled = true
+            return
+        }
+
+        // Crear nuevo
+        let mat = SimpleMaterial(
+            color: .init(red: 1, green: 1, blue: 1, alpha: 0.15),  // 15% opaco (85% transparente)
+            roughness: 0.05,
+            isMetallic: false
+        )
+
+        // Y úsalo al crear el box:
+        let mesh = MeshResource.generateBox(width: 1, height: 1, depth: 1)
+        let box  = ModelEntity(mesh: mesh, materials: [mat])
+
+        box.name = "LimitrofesBox"
+        box.collision = nil // no necesitamos colisiones
+
+        // Colgar directamente del modelo para que LO SIGA si lo mueves/rotas/escalas
+        e.addChild(box)
+
+        // Centrarlo en el origen del modelo (ajusta si quieres alinearlo a ground)
+        // Mantiene Y, cambia X y Z
+        let y = box.position.y
+        box.position = SIMD3<Float>(0.75, y, 0.2)
+        
+        
+        let deg: Float = 353
+        let rad = deg * .pi / 180
+        box.orientation = simd_quatf(angle: rad, axis: [0, 1, 0])
+
+
+
+        // Aplicar dimensiones desde AppModel
+        applyLimitrofesSize(box)
+
+        limitrofesBox = box
+        box.isEnabled = true
+    }
+
+    /// Quita/oculta el cubo
+    @MainActor
+    private func removeLimitrofesBox() {
+        if let box = limitrofesBox {
+            box.isEnabled = false
+            box.removeFromParent()
+        }
+        limitrofesBox = nil
+    }
+
+    /// Aplica dimensiones desde AppModel (ancho/alto/prof.)
+    @MainActor
+    private func applyLimitrofesSize(_ box: ModelEntity) {
+        // Ajusta el mesh via scale (más barato que regenerar malla cada vez)
+        // OJO: asume que el box base es 1x1x1
+        let w = appModel.limBoxWidth
+        let h = appModel.limBoxHeight
+        let d = appModel.limBoxDepth
+        box.scale = [w, h, d]
+    }
+
 
     @MainActor
     private func loadOrReplaceModel(name: String) async {
@@ -216,6 +292,9 @@ struct ImmersiveView: View {
 
         } catch {
             print("Error cargando \(name): \(error)")
+        }
+        if appModel.showLimitrofes {
+            ensureLimitrofesBox()
         }
     }
 

@@ -4,10 +4,34 @@
     "Scene.usda"
   ],
   "recentIdentifiers" : {
+    "26DBAE76-5DD8-47B6-A085-1B4ADA111097" : [
 
+    ]
   },
   "sceneCameraHistory" : {
     "26DBAE76-5DD8-47B6-A085-1B4ADA111097" : [
+      {
+        "date" : 782348920.925833,
+        "title" : "Untitled",
+        "transform" : [
+          1,
+          0,
+          0,
+          0,
+          0,
+          0.7071069,
+          -0.70710677,
+          0,
+          0,
+          0.70710677,
+          0.7071069,
+          0,
+          0,
+          2.143555,
+          2.1435554,
+          1
+        ]
+      },
       {
         "date" : 781831221.564992,
         "title" : "Untitled",
