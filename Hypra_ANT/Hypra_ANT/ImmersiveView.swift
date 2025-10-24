@@ -275,7 +275,7 @@ struct ImmersiveView: View {
                 Text(nombre ?? "Riesgos")
                     .font(.headline)
                     .foregroundStyle(color)
-                Text("Posible riesgo de inhundamiento por cercanía al río.")
+                Text("Posible riesgo de inundación por cercanía al río.")
                     .foregroundStyle(color)
             }
             .padding(10)

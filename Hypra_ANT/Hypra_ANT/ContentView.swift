@@ -79,7 +79,7 @@ struct ContentView: View {
                                     : "square.on.square"
                             )
                             .symbolRenderingMode(.hierarchical)
-                            Text("Catastralidad")
+                            Text("Catastral")
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 8)
