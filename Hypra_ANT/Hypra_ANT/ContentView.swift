@@ -7,7 +7,7 @@ struct ContentView: View {
     @Environment(\.openImmersiveSpace) private var openImmersiveSpace
     @EnvironmentObject private var appModel: AppModel
 
-    private let options = ["Parque", "Edificio", "Iglesia", "Parqueadero"]
+    private let options = ["Parque", "Cosecha"]
 
     var body: some View {
         VStack(spacing: 20) {

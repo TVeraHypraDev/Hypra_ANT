@@ -94,5 +94,15 @@ def Xform "Root"
         float3 xformOp:scale = (0.016744256, 0.016744256, 0.016744256)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
     }
+
+    def "Cosecha" (
+        active = true
+        prepend references = @Cosecha.usdz@</object>
+    )
+    {
+        quatf xformOp:orient = (1, 0, 0, 0)
+        float3 xformOp:scale = (0.72057843, 0.72057843, 0.72057843)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+    }
 }
 

@@ -50,17 +50,13 @@ struct PlaceInfo {
 // Ajusta estos valores reales a tu proyecto
 private let placeInfo: [String: PlaceInfo] = [
     "Parque":      .init(aforoMaximo: 1200, m2: 8500, anioConstruccion: 1998, direccion: "Cra 10 #20-30"),
-    "Edificio":    .init(aforoMaximo: 600,  m2: 4200, anioConstruccion: 2010, direccion: "Av. Central 123"),
-    "Iglesia":     .init(aforoMaximo: 400,  m2: 1800, anioConstruccion: 1954, direccion: "Calle 7 #5-12"),
-    "Parqueadero": .init(aforoMaximo: 300,  m2: 3200, anioConstruccion: 2018, direccion: "Transv. 4 #45-16"),
+    "Cosecha":    .init(aforoMaximo: 600,  m2: 4200, anioConstruccion: 2010, direccion: "Av. Central 123")
 ]
 
 
 private let tunings: [String: ModelTuning] = [
     "Parque": .init(uniformScale: 0.2, position: [0, 0, 0]),
-    "Edificio": .init(uniformScale: 0.7, position: [0, 0, 0]),
-    "Iglesia": .init(uniformScale: 0.01, position: [0, 0, 0]),
-    "Parqueadero": .init(uniformScale: 0.15, position: [0, 0, 0]),
+    "Cosecha": .init(uniformScale: 0.7, position: [0, 0, 0])
 ]
 
 struct CatastralPanelView: View {
@@ -68,7 +64,7 @@ struct CatastralPanelView: View {
     var body: some View {
         let color = Color(.sRGB, red: 0.0, green: 0.4, blue: 0.0, opacity: 1.0)
         VStack(alignment: .leading, spacing: 6) {
-            Text(nombre ?? "Catastralidad").font(.headline).foregroundStyle(color)
+            Text(nombre ?? "Información Catastral").font(.headline).foregroundStyle(color)
             Text("Predio/Nomenclatura: Calle 10 # 20-30")
                 .foregroundStyle(color)
         }
