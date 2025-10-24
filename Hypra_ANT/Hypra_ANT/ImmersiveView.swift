@@ -63,6 +63,21 @@ private let tunings: [String: ModelTuning] = [
     "Parqueadero": .init(uniformScale: 0.15, position: [0, 0, 0]),
 ]
 
+struct CatastralPanelView: View {
+    var nombre: String?
+    var body: some View {
+        let color = Color(.sRGB, red: 0.0, green: 0.4, blue: 0.0, opacity: 1.0)
+        VStack(alignment: .leading, spacing: 6) {
+            Text(nombre ?? "Catastralidad").font(.headline).foregroundStyle(color)
+            Text("Predio/Nomenclatura: Calle 10 # 20-30")
+                .foregroundStyle(color)
+        }
+        .padding(10)
+        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
+    }
+}
+
+
 struct ImmersiveView: View {
     @EnvironmentObject private var appModel: AppModel
     @Environment(\.scenePhase) private var scenePhase
@@ -86,6 +101,12 @@ struct ImmersiveView: View {
 
     @State private var showHandPanel = false
     @State private var panel = Entity()
+    
+    @State private var catastralBox: ModelEntity? = nil
+    @State private var catastralPanel = Entity()
+    
+    @State private var riesgosSphere: ModelEntity? = nil
+    @State private var riesgosPanel = Entity()
 
     var body: some View {
         RealityView { content in
@@ -127,6 +148,32 @@ struct ImmersiveView: View {
             if on { Task { await MainActor.run { ensureLimitrofesBox() } } }
             else   { Task { await MainActor.run { removeLimitrofesBox() } } }
         }
+        .onChange(of: appModel.showCatastralidad) { on in
+            if on {
+                Task { await MainActor.run {
+                    ensureCatastralBox()
+                    ensureCatastralPanel()
+                } }
+            } else {
+                Task { await MainActor.run {
+                    removeCatastralPanel()
+                    removeCatastralBox()
+                } }
+            }
+        }
+        .onChange(of: appModel.showRiesgos) { on in
+            if on {
+                Task { await MainActor.run {
+                    ensureRiesgosSphere()
+                    ensureRiesgosPanel()
+                } }
+            } else {
+                Task { await MainActor.run {
+                    removeRiesgosPanel()
+                    removeRiesgosSphere()
+                } }
+            }
+        }
         .onChange(of: scenePhase) { phase in
             switch phase {
             case .active:
@@ -166,6 +213,194 @@ struct ImmersiveView: View {
 
     }
     
+    // ====== RIESGOS: esfera rojo oscuro + panel ======
+
+    @MainActor
+    private func ensureRiesgosSphere() {
+        guard let e = currentEntity else { return }
+
+        if let s = riesgosSphere {
+            if s.parent != e { s.removeFromParent(); e.addChild(s) }
+            applyRiesgosSize(s)
+            s.isEnabled = true
+            return
+        }
+
+        // Material: rojo oscuro, misma transparencia que catastralidad (alpha 0.4)
+        let mat = SimpleMaterial(
+            color: .init(red: 0.5, green: 0.0, blue: 0.0, alpha: 0.6),
+            roughness: 0.9,
+            isMetallic: false
+        )
+
+        let mesh = MeshResource.generateSphere(radius: 1) // base 1m, luego escalamos
+        let sphere = ModelEntity(mesh: mesh, materials: [mat])
+        sphere.name = "RiesgosSphere"
+        sphere.collision = nil
+
+        e.addChild(sphere)
+
+        // Posición centrada respecto al modelo; preserva Y si quieres
+        let y = sphere.position.y - 0.05
+        sphere.position = .init(0, y, 0.3)
+
+        applyRiesgosSize(sphere)
+
+        riesgosSphere = sphere
+        sphere.isEnabled = true
+    }
+
+    @MainActor
+    private func applyRiesgosSize(_ sphere: ModelEntity) {
+        let r = appModel.riskSphereRadius
+        sphere.scale = .init(repeating: r) // uniforme
+    }
+
+    @MainActor
+    private func removeRiesgosSphere() {
+        if let s = riesgosSphere {
+            s.isEnabled = false
+            s.removeFromParent()
+        }
+        riesgosSphere = nil
+    }
+
+    // ====== Panel de Riesgos (texto rojo oscuro que mira a la cabeza) ======
+
+    struct RiesgosPanelView: View {
+        var nombre: String?
+        var body: some View {
+            let color = Color(.sRGB, red: 0.5, green: 0.0, blue: 0.0, opacity: 1.0) // rojo oscuro
+            VStack(alignment: .leading, spacing: 6) {
+                Text(nombre ?? "Riesgos")
+                    .font(.headline)
+                    .foregroundStyle(color)
+                Text("Posible riesgo de inhundamiento por cercanía al río.")
+                    .foregroundStyle(color)
+            }
+            .padding(10)
+            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
+        }
+    }
+
+    @MainActor
+    private func ensureRiesgosPanel() {
+        guard let e = currentEntity else { return }
+
+        if riesgosPanel.components[BillboardComponent.self] == nil {
+            riesgosPanel.components.set(BillboardComponent()) // siempre mira a la cabeza
+        }
+        riesgosPanel.components.set(
+            ViewAttachmentComponent(rootView: RiesgosPanelView(nombre: appModel.selectedName))
+        )
+
+        if riesgosPanel.parent != e {
+            riesgosPanel.removeFromParent()
+            e.addChild(riesgosPanel)
+        }
+
+        // Coloca el panel por encima del modelo (usa bounds locales)
+        let vb = e.visualBounds(relativeTo: e)
+        let topY = vb.center.y + vb.extents.y / 2
+        riesgosPanel.scale = .init(10.0, 10.0, 10.0)
+        riesgosPanel.position = .init(0, topY + 0.4, 0)
+        riesgosPanel.isEnabled = true
+    }
+
+    @MainActor
+    private func removeRiesgosPanel() {
+        riesgosPanel.isEnabled = false
+        riesgosPanel.removeFromParent()
+    }
+
+    
+    @MainActor
+    private func ensureCatastralPanel() {
+        guard let e = currentEntity else { return }
+
+        // Configura una vez: billboard + rootView
+        if catastralPanel.components[BillboardComponent.self] == nil {
+            catastralPanel.components.set(BillboardComponent())
+        }
+        catastralPanel.components.set(
+            ViewAttachmentComponent(rootView: CatastralPanelView(nombre: appModel.selectedName))
+        )
+
+        if catastralPanel.parent != e {
+            catastralPanel.removeFromParent()
+            e.addChild(catastralPanel)
+        }
+
+        // Colócalo sobre el modelo (usamos bounds locales del entity)
+        let vb = e.visualBounds(relativeTo: e)
+        let topY = vb.center.y + vb.extents.y / 2
+        catastralPanel.scale = .init(10.0, 10.0, 10.0)
+        catastralPanel.position = .init(0, topY + 0.4, 0) // 12 cm sobre el “techo”
+        catastralPanel.isEnabled = true
+    }
+
+    @MainActor
+    private func removeCatastralPanel() {
+        catastralPanel.isEnabled = false
+        catastralPanel.removeFromParent()
+    }
+
+    
+    @MainActor
+    private func ensureCatastralBox() {
+        guard let e = currentEntity else { return }
+
+        if let box = catastralBox {
+            if box.parent != e { box.removeFromParent(); e.addChild(box) }
+            applyCatastralSize(box)
+            box.isEnabled = true
+            return
+        }
+
+        // Material “vidrio” verde oscuro
+        let mat = SimpleMaterial(
+            color: .init(red: 0.0, green: 0.4, blue: 0.0, alpha: 0.6),
+            roughness: 0.9,
+            isMetallic: false
+        )
+
+        let mesh = MeshResource.generateBox(width: 1, height: 1, depth: 1)
+        let box  = ModelEntity(mesh: mesh, materials: [mat])
+        box.name = "CatastralBox"
+        box.collision = nil
+
+        e.addChild(box)
+        
+        let deg: Float = 353
+        let rad = deg * .pi / 180
+        box.orientation = simd_quatf(angle: rad, axis: [0, 1, 0])
+        
+
+        // Posición local: conserva Y y ajusta X/Z si quieres
+        let y = box.position.y
+        box.position = .init(-1.79, y, 0)  // céntrico; cambia X/Z si necesitas
+
+        applyCatastralSize(box)
+
+        catastralBox = box
+        box.isEnabled = true
+    }
+
+    @MainActor
+    private func removeCatastralBox() {
+        if let box = catastralBox {
+            box.isEnabled = false
+            box.removeFromParent()
+        }
+        catastralBox = nil
+    }
+
+    @MainActor
+    private func applyCatastralSize(_ box: ModelEntity) {
+        box.scale = [appModel.catBoxWidth, appModel.catBoxHeight, appModel.catBoxDepth]
+    }
+
+    
     /// Crea (si hace falta) y ancla el cubo de limítrofes al currentEntity.
     @MainActor
     private func ensureLimitrofesBox() {
@@ -181,7 +416,7 @@ struct ImmersiveView: View {
 
         // Crear nuevo
         let mat = SimpleMaterial(
-            color: .init(red: 1, green: 1, blue: 1, alpha: 0.15),  // 15% opaco (85% transparente)
+            color: .init(red: 1, green: 1, blue: 1, alpha: 0.02),  // 15% opaco (85% transparente)
             roughness: 0.05,
             isMetallic: false
         )
@@ -205,7 +440,6 @@ struct ImmersiveView: View {
         let deg: Float = 353
         let rad = deg * .pi / 180
         box.orientation = simd_quatf(angle: rad, axis: [0, 1, 0])
-
 
 
         // Aplicar dimensiones desde AppModel
@@ -293,9 +527,18 @@ struct ImmersiveView: View {
         } catch {
             print("Error cargando \(name): \(error)")
         }
-        if appModel.showLimitrofes {
-            ensureLimitrofesBox()
+        
+        
+        if appModel.showCatastralidad {
+            ensureCatastralBox()
+            ensureCatastralPanel()
         }
+        if appModel.showRiesgos {
+            ensureRiesgosSphere()
+            ensureRiesgosPanel()
+        }
+
+
     }
 
     /// Baja el modelo hasta que su base toque y=0 (respecto al ancla).
