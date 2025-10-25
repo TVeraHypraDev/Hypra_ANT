@@ -7,13 +7,13 @@ import SwiftUI
 private let htLog = Logger(subsystem: "Hypra_ANT", category: "HandTracking")
 private let log = Logger(subsystem: "Hypra_ANT", category: "HandTracking")
 
-// Ajustes opcionales por modelo
 struct ModelTuning {
     var uniformScale: Float? = nil
     var position: SIMD3<Float>? = nil
-    var rotationEuler: SIMD3<Float>? = nil  // (pitch, yaw, roll) en radianes
+    var rotationEuler: SIMD3<Float>? = nil
 }
 
+//MARK: Dedo medio e índice
 struct HandPanelView: View {
     let selection: String?
     let info: [String: PlaceInfo]
@@ -47,7 +47,7 @@ struct PlaceInfo {
     let direccion: String
 }
 
-// Ajusta estos valores reales a tu proyecto
+
 private let placeInfo: [String: PlaceInfo] = [
     "Parque":      .init(aforoMaximo: 1200, m2: 8500, anioConstruccion: 1998, direccion: "Cra 10 #20-30"),
     "Cosecha":    .init(aforoMaximo: 600,  m2: 4200, anioConstruccion: 2010, direccion: "Av. Central 123")
@@ -56,16 +56,101 @@ private let placeInfo: [String: PlaceInfo] = [
 
 private let tunings: [String: ModelTuning] = [
     "Parque": .init(uniformScale: 0.2, position: [0, 0, 0]),
-    "Cosecha": .init(uniformScale: 0.7, position: [0, 0, 0])
+    "Cosecha": .init(uniformScale: 0.4, position: [0, 0, 0])
 ]
+
+
+struct BoxConfig {
+    var scale: SIMD3<Float>
+    var positionXZ: SIMD2<Float>
+    var yawDeg: Float
+}
+
+struct SphereConfig {
+    var radius: Float
+    var positionXZ: SIMD2<Float>
+    var deltaY: Float
+}
+
+struct PanelConfig {
+    var topOffsetY: Float
+    var scale: SIMD3<Float>
+}
+
+struct OverlaySetConfig {
+    var limitrofes:   BoxConfig
+    var catastral:    BoxConfig
+    var riesgos:      SphereConfig
+    var panelCat:     PanelConfig
+    var panelRisk:    PanelConfig
+    var PanelText: String
+    var PanelTextCat : String
+}
+//MARK: Información de objetos
+let overlayConfigBySelection: [String: OverlaySetConfig] = [
+
+    "Parque":
+        .init(
+            // Limítrofes
+            limitrofes: .init(
+                scale:      SIMD3<Float>(4.5, 0.4, 5.0),
+                positionXZ: SIMD2<Float>(0.75, 0.2),
+                yawDeg:     353
+            ),
+            // Catastralidad
+            catastral: .init(
+                scale:      SIMD3<Float>(0.5, 0.5, 5.0),
+                positionXZ: SIMD2<Float>(-1.79, 0.0),
+                yawDeg:     353
+            ),
+            // Riesgos
+            riesgos: .init(
+                radius:     0.6,
+                positionXZ: SIMD2<Float>(0.0, 0.3),
+                deltaY:     -0.05
+            ),
+            panelCat:  .init(topOffsetY: 0.4, scale: SIMD3<Float>(10,10,10)),
+            panelRisk: .init(topOffsetY: 0.4, scale: SIMD3<Float>(10,10,10)),
+            PanelText: "Posible inundación por cercanía al río.",
+            PanelTextCat: "Predio/Nomenclatura: Vía la Calera - Sopó KM 50"
+        ),
+
+    "Cosecha":
+            .init(
+                // Limítrofes
+                limitrofes: .init(
+                    scale:      SIMD3<Float>(4.5, 0.4, 5.0),
+                    positionXZ: SIMD2<Float>(0.75, 0.2),
+                    yawDeg:     353
+                ),
+                // Catastralidad
+                catastral: .init(
+                    scale:      SIMD3<Float>(0.2, 0.2, 5.0),
+                    positionXZ: SIMD2<Float>(-0.7, -0.72),
+                    yawDeg:     92
+                ),
+                // Riesgos
+                riesgos: .init(
+                    radius:     0.6,
+                    positionXZ: SIMD2<Float>(0.8, 0.3),
+                    deltaY:     -0.05
+                ),
+                panelCat:  .init(topOffsetY: 0.4, scale: SIMD3<Float>(10,10,10)),
+                panelRisk: .init(topOffsetY: 0.4, scale: SIMD3<Float>(10,10,10)),
+                PanelText: "Cosechas altamente combustibles en temporada seca.",
+                PanelTextCat: "Predio/Nomenclatura: Vía Mingueo - Santa Marta KM 90"
+            )
+]
+
 
 struct CatastralPanelView: View {
     var nombre: String?
+    var descripcion : String?
     var body: some View {
         let color = Color(.sRGB, red: 0.0, green: 0.4, blue: 0.0, opacity: 1.0)
         VStack(alignment: .leading, spacing: 6) {
             Text(nombre ?? "Información Catastral").font(.headline).foregroundStyle(color)
-            Text("Predio/Nomenclatura: Calle 10 # 20-30")
+            Text(descripcion ?? "Predio/Nomenclatura: Vía la Calera - Sopó KM 404")
                 .foregroundStyle(color)
         }
         .padding(10)
@@ -73,7 +158,7 @@ struct CatastralPanelView: View {
     }
 }
 
-
+//MARK: Immersive View
 struct ImmersiveView: View {
     @EnvironmentObject private var appModel: AppModel
     @Environment(\.scenePhase) private var scenePhase
@@ -115,7 +200,6 @@ struct ImmersiveView: View {
             panel.isEnabled = false
             headAnchor.addChild(panel)
         }update: { content in
-            // ⬇️ Mueve el panel para que siempre quede frente a la cabeza
             
         }
         .onChange(of: showHandPanel) { newValue in
@@ -128,6 +212,7 @@ struct ImmersiveView: View {
                 await loadOrReplaceModel(name: name)
             }
         }.onAppear {
+            appModel.worldSpaceOpen = true
             log.info("ImmersiveView onAppear")
             guard HandTrackingProvider.isSupported else {
                 log.error("HandTracking NO soportado en este dispositivo/sim")
@@ -198,18 +283,21 @@ struct ImmersiveView: View {
                 htLog.info(
                     "scenePhase = \(String(describing: phase)) -> pausar tracking"
                 )
-                stopHandTracking()  // cancela task + arSession.stop()
+                stopHandTracking()
                 panel.isEnabled = false
                 showHandPanel = false
 
             @unknown default:
                 break
             }
+        }.onDisappear {
+            appModel.worldSpaceOpen = false
+            stopHandTracking()
         }
 
     }
     
-    // ====== RIESGOS: esfera rojo oscuro + panel ======
+    //MARK: Todo de Riesgos
 
     @MainActor
     private func ensureRiesgosSphere() {
@@ -222,25 +310,26 @@ struct ImmersiveView: View {
             return
         }
 
-        // Material: rojo oscuro, misma transparencia que catastralidad (alpha 0.4)
         let mat = SimpleMaterial(
             color: .init(red: 0.5, green: 0.0, blue: 0.0, alpha: 0.6),
             roughness: 0.9,
             isMetallic: false
         )
 
-        let mesh = MeshResource.generateSphere(radius: 1) // base 1m, luego escalamos
+        let mesh = MeshResource.generateSphere(radius: 1)
         let sphere = ModelEntity(mesh: mesh, materials: [mat])
         sphere.name = "RiesgosSphere"
         sphere.collision = nil
 
         e.addChild(sphere)
 
-        // Posición centrada respecto al modelo; preserva Y si quieres
-        let y = sphere.position.y - 0.05
-        sphere.position = .init(0, y, 0.3)
+        guard let sel = appModel.selectedName,
+              let cfg = overlayConfigBySelection[sel]?.riesgos else { return }
 
-        applyRiesgosSize(sphere)
+        // radius
+        sphere.scale = .init(repeating: cfg.radius)
+        let baseY = sphere.position.y
+        sphere.position = .init(cfg.positionXZ.x, baseY + cfg.deltaY, cfg.positionXZ.y)
 
         riesgosSphere = sphere
         sphere.isEnabled = true
@@ -248,8 +337,11 @@ struct ImmersiveView: View {
 
     @MainActor
     private func applyRiesgosSize(_ sphere: ModelEntity) {
-        let r = appModel.riskSphereRadius
-        sphere.scale = .init(repeating: r) // uniforme
+        guard let sel = appModel.selectedName,
+              let cfg = overlayConfigBySelection[sel]?.riesgos else { return }
+
+        // radius
+        sphere.scale = .init(repeating: cfg.radius)
     }
 
     @MainActor
@@ -261,17 +353,17 @@ struct ImmersiveView: View {
         riesgosSphere = nil
     }
 
-    // ====== Panel de Riesgos (texto rojo oscuro que mira a la cabeza) ======
 
     struct RiesgosPanelView: View {
         var nombre: String?
+        var descripcion: String?
         var body: some View {
-            let color = Color(.sRGB, red: 0.5, green: 0.0, blue: 0.0, opacity: 1.0) // rojo oscuro
+            let color = Color(.sRGB, red: 0.5, green: 0.0, blue: 0.0, opacity: 1.0)
             VStack(alignment: .leading, spacing: 6) {
                 Text(nombre ?? "Riesgos")
                     .font(.headline)
                     .foregroundStyle(color)
-                Text("Posible riesgo de inundación por cercanía al río.")
+                Text(descripcion ?? "Aqui hay un riesgo")
                     .foregroundStyle(color)
             }
             .padding(10)
@@ -283,55 +375,66 @@ struct ImmersiveView: View {
     private func ensureRiesgosPanel() {
         guard let e = currentEntity else { return }
 
-        if riesgosPanel.components[BillboardComponent.self] == nil {
-            riesgosPanel.components.set(BillboardComponent()) // siempre mira a la cabeza
-        }
-        riesgosPanel.components.set(
-            ViewAttachmentComponent(rootView: RiesgosPanelView(nombre: appModel.selectedName))
-        )
-
-        if riesgosPanel.parent != e {
+        if riesgosPanel.parent != nil {
             riesgosPanel.removeFromParent()
-            e.addChild(riesgosPanel)
         }
-
-        // Coloca el panel por encima del modelo (usa bounds locales)
         let vb = e.visualBounds(relativeTo: e)
         let topY = vb.center.y + vb.extents.y / 2
-        riesgosPanel.scale = .init(10.0, 10.0, 10.0)
-        riesgosPanel.position = .init(0, topY + 0.4, 0)
+
+        if riesgosPanel.components[BillboardComponent.self] == nil {
+            riesgosPanel.components.set(BillboardComponent())
+        }
+        guard let sel = appModel.selectedName,
+              let text = overlayConfigBySelection[sel]?.PanelText else { return }
+        
+        riesgosPanel.components.set(
+            ViewAttachmentComponent(rootView: RiesgosPanelView(nombre: appModel.selectedName, descripcion: text))
+        )
+
+        guard let sel = appModel.selectedName,
+              let catCfg = overlayConfigBySelection[sel]?.panelRisk else { return }
+
+        riesgosPanel.scale = catCfg.scale
+        riesgosPanel.position = .init(0, topY + catCfg.topOffsetY, 0)
+
+        currentEntity?.addChild(riesgosPanel)
         riesgosPanel.isEnabled = true
     }
+
 
     @MainActor
     private func removeRiesgosPanel() {
         riesgosPanel.isEnabled = false
         riesgosPanel.removeFromParent()
     }
-
     
+    //MARK: Todo de catastral
+
     @MainActor
     private func ensureCatastralPanel() {
         guard let e = currentEntity else { return }
 
-        // Configura una vez: billboard + rootView
-        if catastralPanel.components[BillboardComponent.self] == nil {
-            catastralPanel.components.set(BillboardComponent())
-        }
-        catastralPanel.components.set(
-            ViewAttachmentComponent(rootView: CatastralPanelView(nombre: appModel.selectedName))
-        )
-
-        if catastralPanel.parent != e {
-            catastralPanel.removeFromParent()
-            e.addChild(catastralPanel)
-        }
-
-        // Colócalo sobre el modelo (usamos bounds locales del entity)
+        if catastralPanel.parent != nil { catastralPanel.removeFromParent() }
         let vb = e.visualBounds(relativeTo: e)
         let topY = vb.center.y + vb.extents.y / 2
-        catastralPanel.scale = .init(10.0, 10.0, 10.0)
-        catastralPanel.position = .init(0, topY + 0.4, 0) // 12 cm sobre el “techo”
+
+        catastralPanel = Entity()
+
+        catastralPanel.components.set(BillboardComponent())
+
+        guard let sel = appModel.selectedName,
+              let texto = overlayConfigBySelection[sel]?.PanelTextCat,
+              let catCfg = overlayConfigBySelection[sel]?.panelCat
+        else { return }
+
+        catastralPanel.components.set(
+            ViewAttachmentComponent(
+                rootView: CatastralPanelView(nombre: appModel.selectedName, descripcion: texto)
+            )
+        )
+        catastralPanel.scale    = catCfg.scale
+        catastralPanel.position = .init(0, topY + catCfg.topOffsetY, 0)
+        e.addChild(catastralPanel)
         catastralPanel.isEnabled = true
     }
 
@@ -339,7 +442,9 @@ struct ImmersiveView: View {
     private func removeCatastralPanel() {
         catastralPanel.isEnabled = false
         catastralPanel.removeFromParent()
+        catastralPanel = Entity()
     }
+
 
     
     @MainActor
@@ -353,7 +458,6 @@ struct ImmersiveView: View {
             return
         }
 
-        // Material “vidrio” verde oscuro
         let mat = SimpleMaterial(
             color: .init(red: 0.0, green: 0.4, blue: 0.0, alpha: 0.6),
             roughness: 0.9,
@@ -365,18 +469,17 @@ struct ImmersiveView: View {
         box.name = "CatastralBox"
         box.collision = nil
 
+        guard let sel = appModel.selectedName,
+              let cfg = overlayConfigBySelection[sel]?.catastral else { return }
+
         e.addChild(box)
         
-        let deg: Float = 353
-        let rad = deg * .pi / 180
-        box.orientation = simd_quatf(angle: rad, axis: [0, 1, 0])
-        
+        box.scale = cfg.scale
+        let keepY = box.position.y
+        box.position = .init(cfg.positionXZ.x, keepY, cfg.positionXZ.y)
+        let rad = cfg.yawDeg * .pi / 180
+        box.orientation = simd_quatf(angle: rad, axis: [0,1,0])
 
-        // Posición local: conserva Y y ajusta X/Z si quieres
-        let y = box.position.y
-        box.position = .init(-1.79, y, 0)  // céntrico; cambia X/Z si necesitas
-
-        applyCatastralSize(box)
 
         catastralBox = box
         box.isEnabled = true
@@ -393,16 +496,18 @@ struct ImmersiveView: View {
 
     @MainActor
     private func applyCatastralSize(_ box: ModelEntity) {
-        box.scale = [appModel.catBoxWidth, appModel.catBoxHeight, appModel.catBoxDepth]
+        guard let sel = appModel.selectedName,
+              let cfg = overlayConfigBySelection[sel]?.catastral else { return }
+
+        box.scale = cfg.scale
     }
 
+    //MARK: Todo de limítrofes
     
-    /// Crea (si hace falta) y ancla el cubo de limítrofes al currentEntity.
     @MainActor
     private func ensureLimitrofesBox() {
         guard let e = currentEntity else { return }
 
-        // Si ya existe, solo actualiza tamaño y asegúrate que está colgado del entity
         if let box = limitrofesBox {
             if box.parent != e { box.removeFromParent(); e.addChild(box) }
             applyLimitrofesSize(box)
@@ -412,7 +517,7 @@ struct ImmersiveView: View {
 
         // Crear nuevo
         let mat = SimpleMaterial(
-            color: .init(red: 1, green: 1, blue: 1, alpha: 0.02),  // 15% opaco (85% transparente)
+            color: .init(red: 1, green: 1, blue: 1, alpha: 0.02),
             roughness: 0.05,
             isMetallic: false
         )
@@ -422,30 +527,27 @@ struct ImmersiveView: View {
         let box  = ModelEntity(mesh: mesh, materials: [mat])
 
         box.name = "LimitrofesBox"
-        box.collision = nil // no necesitamos colisiones
-
-        // Colgar directamente del modelo para que LO SIGA si lo mueves/rotas/escalas
+        box.collision = nil
+        
         e.addChild(box)
 
-        // Centrarlo en el origen del modelo (ajusta si quieres alinearlo a ground)
-        // Mantiene Y, cambia X y Z
-        let y = box.position.y
-        box.position = SIMD3<Float>(0.75, y, 0.2)
+        guard let sel = appModel.selectedName,
+              let cfg = overlayConfigBySelection[sel]?.limitrofes else { return }
+
         
+        box.scale = cfg.scale
         
-        let deg: Float = 353
-        let rad = deg * .pi / 180
-        box.orientation = simd_quatf(angle: rad, axis: [0, 1, 0])
-
-
-        // Aplicar dimensiones desde AppModel
-        applyLimitrofesSize(box)
-
+        let keepY = box.position.y
+        box.position = .init(cfg.positionXZ.x, keepY, cfg.positionXZ.y)
+        
+        let rad = cfg.yawDeg * .pi / 180
+        box.orientation = simd_quatf(angle: rad, axis: [0,1,0])
+	
         limitrofesBox = box
         box.isEnabled = true
     }
 
-    /// Quita/oculta el cubo
+    
     @MainActor
     private func removeLimitrofesBox() {
         if let box = limitrofesBox {
@@ -455,18 +557,16 @@ struct ImmersiveView: View {
         limitrofesBox = nil
     }
 
-    /// Aplica dimensiones desde AppModel (ancho/alto/prof.)
     @MainActor
     private func applyLimitrofesSize(_ box: ModelEntity) {
-        // Ajusta el mesh via scale (más barato que regenerar malla cada vez)
-        // OJO: asume que el box base es 1x1x1
-        let w = appModel.limBoxWidth
-        let h = appModel.limBoxHeight
-        let d = appModel.limBoxDepth
-        box.scale = [w, h, d]
+        guard let sel = appModel.selectedName,
+              let cfg = overlayConfigBySelection[sel]?.limitrofes else { return }
+
+        box.scale = cfg.scale
     }
 
-
+    //MARK: Agregar modelo (terreno)
+    
     @MainActor
     private func loadOrReplaceModel(name: String) async {
 
@@ -493,7 +593,7 @@ struct ImmersiveView: View {
             anchor.addChild(entity)
             currentEntity = entity
 
-            // Coloca el ancla frente al usuario (~1.2 m alto y 1.2 m adelante)
+            
             anchor.position = [-1.0, 1.2, -1.0]
 
             if let tuning = tunings[name] {
@@ -533,16 +633,22 @@ struct ImmersiveView: View {
             ensureRiesgosSphere()
             ensureRiesgosPanel()
         }
+        
+        if appModel.showLimitrofes{
+            ensureLimitrofesBox()
+        }
 
 
     }
-
-    /// Baja el modelo hasta que su base toque y=0 (respecto al ancla).
+    
+    
     private func dropToGround(_ entity: Entity) {
         let b = entity.visualBounds(relativeTo: nil)
         let minY = b.center.y - b.extents.y / 2
         entity.position.y -= minY
     }
+    
+    //MARK: Seguimiento de manos
 
     private func stopHandTracking() {
         htLog.info("stopHandTracking(): cancelando task y parando ARKitSession")
@@ -557,7 +663,6 @@ struct ImmersiveView: View {
             return
         }
 
-        // Comprobación previa (evita quedarte esperando en simulador o sin capability)
         if !HandTrackingProvider.isSupported {
             htLog.error(
                 "HandTrackingProvider.isSupported == false (¿simulador? ¿falta capability?)"
@@ -569,12 +674,10 @@ struct ImmersiveView: View {
             "startHandTracking(): iniciando Task de ARKitSession + HandTrackingProvider"
         )
 
-        // reinicia panel por si quedó encendido
         panel.isEnabled = false
         showHandPanel = false
 
         handTask = Task {
-            // 1) Intentar levantar la sesión
             htLog.info("ARKitSession.run([handProvider])…")
             do {
                 try await arSession.run([handProvider])
@@ -588,7 +691,6 @@ struct ImmersiveView: View {
                 return
             }
 
-            // 2) Watchdog: si no llegan anchors en 5s, avisa
             var updatesCount = 0
             Task.detached { [updatesCount] in
                 try? await Task.sleep(nanoseconds: 5_000_000_000)
@@ -602,7 +704,6 @@ struct ImmersiveView: View {
                 }
             }
 
-            // 3) Entrar al loop de anchors
             htLog.info("Esperando handProvider.anchorUpdates…")
             for await update in handProvider.anchorUpdates {
                 updatesCount += 1
@@ -621,7 +722,6 @@ struct ImmersiveView: View {
                     continue
                 }
 
-                // No filtramos por chirality, lo mostramos siempre:
                 htLog.debug(
                     "anchor.tracked con chirality=\(String(describing: handAnchor.chirality), privacy: .public)"
                 )
@@ -665,26 +765,24 @@ struct ImmersiveView: View {
                     "thumb(\(pT.x, format: .fixed(precision: 2)),\(pT.y, format: .fixed(precision: 2)),\(pT.z, format: .fixed(precision: 2)))  middle(\(pM.x, format: .fixed(precision: 2)),\(pM.y, format: .fixed(precision: 2)),\(pM.z, format: .fixed(precision: 2)))  dist=\(d, format: .fixed(precision: 3))"
                 )
 
-                let pinch = d < 0.02   // 7 cm funciona con tus valores (0.064 entra, 0.12 no)
+                let pinch = d < 0.02
 
 
                 await MainActor.run {
                         showHandPanel = pinch
                         panel.isEnabled = pinch
                         if pinch {
-                            // Coloca el panel 60 cm delante de la cabeza (en el anchor .head)
                             panel.position = [0, 0, -0.6]
                         }
                     }
-            }  // for await
+            }
             htLog.info(
                 "anchorUpdates loop finalizado (handProvider dejó de emitir)"
             )
-        }  // Task
+        }
     }
     
     private func refreshPanelView() {
-        // Sustituimos el rootView para reflejar el estado actual
         panel.components.set(
             ViewAttachmentComponent(
                 rootView: HandPanelView(selection: appModel.selectedName, info: placeInfo)

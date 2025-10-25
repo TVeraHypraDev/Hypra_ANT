@@ -19,13 +19,19 @@ struct ContentView: View {
                 ForEach(options, id: \.self) { name in
                     Button {
                         Task {
+                            appModel.showLimitrofes   = false
+                                    appModel.showCatastralidad = false
+                                    appModel.showRiesgos      = false
                             log.info("Btn \(name) -> abrir ImmersiveSpace")
                             appModel.selectedName = name  // 1) primero define el modelo
-                            let ok = await openImmersiveSpace(id: "WorldSpace")  // 2) ábrelo una sola vez
-                            appModel.showLimitrofes = false
-                            log.info(
-                                "openImmersiveSpace -> \(String(describing: ok), privacy: .public)"
-                            )
+                            if !appModel.worldSpaceOpen {
+                                let ok = await openImmersiveSpace(id: "WorldSpace")  // 2) ábrelo una sola vez
+                                
+                                appModel.showLimitrofes = false
+                                log.info(
+                                    "openImmersiveSpace -> \(String(describing: ok), privacy: .public)"
+                                )
+                            }
 
                         }
                     } label: {
