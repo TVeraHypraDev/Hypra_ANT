@@ -119,9 +119,9 @@ let overlayConfigBySelection: [String: OverlaySetConfig] = [
             .init(
                 // Limítrofes
                 limitrofes: .init(
-                    scale:      SIMD3<Float>(4.5, 0.4, 5.0),
-                    positionXZ: SIMD2<Float>(0.75, 0.2),
-                    yawDeg:     353
+                    scale:      SIMD3<Float>(2.0, 0.3, 2.7),
+                    positionXZ: SIMD2<Float>(-0.05, 0.4),
+                    yawDeg:     92
                 ),
                 // Catastralidad
                 catastral: .init(
