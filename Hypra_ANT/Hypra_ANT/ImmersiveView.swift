@@ -3,6 +3,11 @@ import OSLog
 import RealityKit
 import RealityKitContent
 import SwiftUI
+import Combine
+
+extension Notification.Name {
+    static let teardownReality = Notification.Name("teardownReality")
+}
 
 private let htLog = Logger(subsystem: "Hypra_ANT", category: "HandTracking")
 private let log = Logger(subsystem: "Hypra_ANT", category: "HandTracking")
@@ -162,12 +167,10 @@ struct CatastralPanelView: View {
 struct ImmersiveView: View {
     @EnvironmentObject private var appModel: AppModel
     @Environment(\.scenePhase) private var scenePhase
-    @Environment(\.openWindow) private var openWindow
-    @State private var reopenedMainOnce = false
+    @Environment(\.dismissImmersiveSpace) private var dismissImmersiveSpace
+    
     @State private var headAnchor = AnchorEntity(.head)
     @State private var limitrofesBox: ModelEntity? = nil
-
-
 
     @State private var anchor = AnchorEntity(
         .world(transform: matrix_identity_float4x4)
@@ -202,6 +205,7 @@ struct ImmersiveView: View {
         }update: { content in
             
         }
+        
         .onChange(of: showHandPanel) { newValue in
             panel.isEnabled = newValue
         }.onChange(of: appModel.selectedName) { _ in
@@ -220,12 +224,8 @@ struct ImmersiveView: View {
             }
             log.info("HandTracking soportado. Iniciando sesión ARKit…")
             startHandTracking()
-        }.task {
-            if !reopenedMainOnce {
-                reopenedMainOnce = true
-                openWindow(id: "main")
-            }
-        }.onChange(of: appModel.showLimitrofes) { on in
+        }
+        .onChange(of: appModel.showLimitrofes) { on in
             if on { Task { await MainActor.run { ensureLimitrofesBox() } } }
             else   { Task { await MainActor.run { removeLimitrofesBox() } } }
         }
@@ -253,6 +253,30 @@ struct ImmersiveView: View {
                     removeRiesgosPanel()
                     removeRiesgosSphere()
                 } }
+            }
+        }
+        .onChange(of: appModel.mainWindowOpen) { isOpen in
+                    if !isOpen {
+                        Task { @MainActor in
+                            _ = await dismissImmersiveSpace()
+                            appModel.worldSpaceOpen = false
+                        }
+                    }
+                }
+        
+        .onReceive(NotificationCenter.default.publisher(for: .teardownReality)) { _ in
+            Task { @MainActor in
+                // 1) desmonta overlays y escena (como ya lo tenías)
+                removeLimitrofesBox()
+                removeCatastralPanel(); removeCatastralBox()
+                removeRiesgosPanel();  removeRiesgosSphere()
+                anchor.children.removeAll()
+                currentEntity = nil
+                stopHandTracking()
+
+                // 2) cierra el ImmersiveSpace desde la propia escena inmersiva ✅
+                _ = await dismissImmersiveSpace()
+                appModel.worldSpaceOpen = false
             }
         }
         .onChange(of: scenePhase) { phase in
@@ -378,26 +402,26 @@ struct ImmersiveView: View {
         if riesgosPanel.parent != nil {
             riesgosPanel.removeFromParent()
         }
+        
         let vb = e.visualBounds(relativeTo: e)
         let topY = vb.center.y + vb.extents.y / 2
 
-        if riesgosPanel.components[BillboardComponent.self] == nil {
-            riesgosPanel.components.set(BillboardComponent())
-        }
+        riesgosPanel = Entity()
+
+        riesgosPanel.components.set(BillboardComponent())
+        
         guard let sel = appModel.selectedName,
-              let text = overlayConfigBySelection[sel]?.PanelText else { return }
+              let text = overlayConfigBySelection[sel]?.PanelText,
+            let catCfg = overlayConfigBySelection[sel]?.panelRisk
+        else { return }
         
         riesgosPanel.components.set(
             ViewAttachmentComponent(rootView: RiesgosPanelView(nombre: appModel.selectedName, descripcion: text))
         )
 
-        guard let sel = appModel.selectedName,
-              let catCfg = overlayConfigBySelection[sel]?.panelRisk else { return }
-
         riesgosPanel.scale = catCfg.scale
         riesgosPanel.position = .init(0, topY + catCfg.topOffsetY, 0)
-
-        currentEntity?.addChild(riesgosPanel)
+        e.addChild(riesgosPanel)
         riesgosPanel.isEnabled = true
     }
 
@@ -414,7 +438,10 @@ struct ImmersiveView: View {
     private func ensureCatastralPanel() {
         guard let e = currentEntity else { return }
 
-        if catastralPanel.parent != nil { catastralPanel.removeFromParent() }
+        if catastralPanel.parent != nil {
+            catastralPanel.removeFromParent()
+        }
+        
         let vb = e.visualBounds(relativeTo: e)
         let topY = vb.center.y + vb.extents.y / 2
 
