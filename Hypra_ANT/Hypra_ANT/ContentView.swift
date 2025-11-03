@@ -23,6 +23,7 @@ struct ContentView: View {
                             appModel.showLimitrofes   = false
                             appModel.showCatastralidad = false
                             appModel.showRiesgos      = false
+                            appModel.showMejoras      = false
                             log.info("Btn \(name) -> abrir ImmersiveSpace")
                             appModel.selectedName = name  // 1) primero define el modelo
                             if !appModel.worldSpaceOpen {
@@ -65,7 +66,7 @@ struct ContentView: View {
                     .controlSize(.large)
                 }
             }
-            .frame(maxWidth: 520)
+            .frame(maxWidth: 800)
             if appModel.selectedName != nil {
                 Divider().padding(.top, 6)
                 HStack(spacing: 12) {
@@ -76,6 +77,7 @@ struct ContentView: View {
                         if willTurnOn {
                             appModel.showLimitrofes = false
                             appModel.showRiesgos = false
+                            appModel.showMejoras = false
                         }
                     } label: {
                         let on = appModel.showCatastralidad
@@ -101,6 +103,7 @@ struct ContentView: View {
                         if willTurnOn {
                             appModel.showCatastralidad = false
                             appModel.showRiesgos = false
+                            appModel.showMejoras = false
                         }
                     } label: {
                         let on = appModel.showLimitrofes
@@ -125,6 +128,7 @@ struct ContentView: View {
                         if willTurnOn {
                             appModel.showLimitrofes = false
                             appModel.showCatastralidad = false
+                            appModel.showMejoras = false
                         }
                     } label: {
                         let on = appModel.showRiesgos
@@ -142,8 +146,32 @@ struct ContentView: View {
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(appModel.showRiesgos ? .red : .accentColor)
+                    Button {
+                        let willTurnOn = !appModel.showMejoras
+                        appModel.showMejoras.toggle()
+                        if willTurnOn {
+                            appModel.showRiesgos = false
+                            appModel.showLimitrofes = false
+                            appModel.showCatastralidad = false
+                        }
+                    } label: {
+                        let on = appModel.showMejoras
+                        HStack {
+                            Image(
+                                systemName: on
+                                ? "checkmark.circle.fill"
+                                : "wrench.and.screwdriver"
+                            )
+                            .symbolRenderingMode(.hierarchical)
+                            Text("Mejoras")
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(appModel.showMejoras ? .mint : .accentColor)
                 }
-                .frame(maxWidth: 520)
+                .frame(maxWidth: 800, maxHeight: .infinity)
             }
         }.onAppear { appModel.mainWindowOpen = true }
             .onDisappear {
@@ -152,11 +180,10 @@ struct ContentView: View {
                     appModel.showLimitrofes = false
                     appModel.showCatastralidad = false
                     appModel.showRiesgos = false
+                    appModel.showMejoras = false
                     
-                    // Dispara limpieza + cierre desde ImmersiveView
                     NotificationCenter.default.post(name: .teardownReality, object: nil)
                     
-                    // Cierra también desde aquí (cinturón y tirantes) ✅
                     _ = await dismissImmersiveSpace()
                     appModel.worldSpaceOpen = false
                 }

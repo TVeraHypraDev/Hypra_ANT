@@ -102,6 +102,28 @@ def Xform "Root"
     {
         quatf xformOp:orient = (1, 0, 0, 0)
         float3 xformOp:scale = (0.72057843, 0.72057843, 0.72057843)
+        float3 xformOp:translate = (0, 0.40925223, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+    }
+
+    def "Molino" (
+        active = true
+        prepend references = @Molino.usdz@</object>
+    )
+    {
+        quatf xformOp:orient = (1, 0, 0, 0)
+        float3 xformOp:scale = (0.46842712, 0.46842712, 0.46842712)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+    }
+
+    def "TanqueAgua" (
+        active = true
+        prepend references = @TanqueAgua.usdz@</object>
+    )
+    {
+        quatf xformOp:orient = (1, 0, 0, 0)
+        float3 xformOp:scale = (0.3708759, 0.3708759, 0.3708759)
+        float3 xformOp:translate = (0, 0.53208196, 0.48943436)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
     }
 }

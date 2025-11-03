@@ -10,7 +10,11 @@ final class AppModel: ObservableObject {
 
     @Published var showLimitrofes: Bool = false
     
+    @Published var showMejoras: Bool = false
+    
     @Published var worldSpaceOpen: Bool = false
+    
+    
 
     // Riesgos
     @Published var showRiesgos: Bool = false
