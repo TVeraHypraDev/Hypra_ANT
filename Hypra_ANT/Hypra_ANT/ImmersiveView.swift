@@ -231,6 +231,8 @@ struct ImmersiveView: View {
     @State private var mejorasEntity: Entity? = nil
     @State private var mejorasPanel = Entity()
     
+    @State private var needsAnchorReadd = false
+
     var body: some View {
         RealityView { content in
             content.add(anchor)
@@ -241,8 +243,13 @@ struct ImmersiveView: View {
             refreshPanelView()
             panel.isEnabled = false
             headAnchor.addChild(panel)
-        }update: { content in
-            
+        } update: { content in
+            if needsAnchorReadd {
+                if !content.entities.contains(where: { $0 == anchor }) {
+                    content.add(anchor)
+                }
+                needsAnchorReadd = false
+            }
         }
         
         .onChange(of: showHandPanel) { newValue in
@@ -313,17 +320,23 @@ struct ImmersiveView: View {
                     appModel.worldSpaceOpen = false
                 }
             }
-        }
-        
-        .onReceive(NotificationCenter.default.publisher(for: .teardownReality)) { _ in
+        }.onReceive(NotificationCenter.default.publisher(for: .teardownReality)) { _ in
             Task { @MainActor in
+                
                 removeLimitrofesBox()
                 removeCatastralPanel(); removeCatastralBox()
                 removeRiesgosPanel();  removeRiesgosSphere()
+                removeMejorasPanel();  removeMejorasModel()
+
                 anchor.children.removeAll()
+                anchor = AnchorEntity(.world(transform: matrix_identity_float4x4))
+                needsAnchorReadd = true
                 currentEntity = nil
+
                 stopHandTracking()
-                
+
+                // 3) da un frame y cierra el espacio (idempotente)
+                await Task.yield()
                 _ = await dismissImmersiveSpace()
                 appModel.worldSpaceOpen = false
             }
@@ -364,9 +377,18 @@ struct ImmersiveView: View {
         }.onDisappear {
             appModel.worldSpaceOpen = false
             stopHandTracking()
+
+            anchor.children.removeAll()
+            currentEntity = nil
+
+            anchor = AnchorEntity(.world(transform: matrix_identity_float4x4))
+            needsAnchorReadd = true
         }
+
         
     }
+    
+    //MARK: Todo de Mejoras
     
     @MainActor
     private func ensureMejorasPanel() {
@@ -403,9 +425,6 @@ struct ImmersiveView: View {
         mejorasPanel.removeFromParent()
         mejorasPanel = Entity()
     }
-    
-    
-    //MARK: Todo de Mejoras
     
     struct MejorasPanelView: View {
         var nombre: String?

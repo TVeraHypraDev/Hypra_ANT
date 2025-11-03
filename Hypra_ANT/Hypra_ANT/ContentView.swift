@@ -24,15 +24,14 @@ struct ContentView: View {
                             appModel.showCatastralidad = false
                             appModel.showRiesgos      = false
                             appModel.showMejoras      = false
-                            log.info("Btn \(name) -> abrir ImmersiveSpace")
-                            appModel.selectedName = name  // 1) primero define el modelo
+                            appModel.selectedName = nil
+                            appModel.selectedName = name
                             if !appModel.worldSpaceOpen {
-                                let ok = await openImmersiveSpace(id: "WorldSpace")  // 2) ábrelo una sola vez
-                                
-                                appModel.showLimitrofes = false
-                                log.info(
-                                    "openImmersiveSpace -> \(String(describing: ok), privacy: .public)"
-                                )
+                                log.info("Btn \(name) -> abrir ImmersiveSpace")
+                                let ok = await openImmersiveSpace(id: "WorldSpace")
+                                let _ = await openImmersiveSpace(id: "WorldSpace")
+                                appModel.worldSpaceOpen = true
+                                log.info("openImmersiveSpace -> \(String(describing: ok), privacy: .public)")
                             }
                             
                         }
@@ -176,16 +175,33 @@ struct ContentView: View {
         }.onAppear { appModel.mainWindowOpen = true }
             .onDisappear {
                 appModel.mainWindowOpen = false
+                
                 Task { @MainActor in
+                    guard appModel.lockWorldSpace == false else {
+                        // Bloqueado: NO cierres el Immersive Space.
+                        // Solo marca flags; el espacio seguirá vivo.
+                        return
+                    }
+                    
+                    // (Solo si no está bloqueado) — tu limpieza previa:
                     appModel.showLimitrofes = false
                     appModel.showCatastralidad = false
                     appModel.showRiesgos = false
                     appModel.showMejoras = false
-                    
                     NotificationCenter.default.post(name: .teardownReality, object: nil)
-                    
                     _ = await dismissImmersiveSpace()
                     appModel.worldSpaceOpen = false
+                }
+            }
+            .onChange(of: appModel.worldSpaceOpen) { isOpen in
+                guard appModel.lockWorldSpace, appModel.mainWindowOpen, !isOpen else { return }
+                guard appModel.selectedName != nil, appModel.isShuttingDown == false else { return }
+                
+                Task { @MainActor in
+                    // Pequeño yield para evitar carrera con onDisappear/onAppear
+                    await Task.yield()
+                    let _ = await openImmersiveSpace(id: "WorldSpace")
+                    appModel.worldSpaceOpen = true
                 }
             }
             .padding(24)
