@@ -14,6 +14,8 @@ final class AppModel: ObservableObject {
     
     @Published var showRiesgos: Bool = false
     
+    @Published var showPanorama360: Bool = false
+    
     @Published var worldSpaceOpen: Bool = false
     
     @Published var showCatastralidad: Bool = false

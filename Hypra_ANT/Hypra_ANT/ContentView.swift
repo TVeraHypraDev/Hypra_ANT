@@ -65,112 +65,146 @@ struct ContentView: View {
                     .controlSize(.large)
                 }
             }
-            .frame(maxWidth: 800)
+            .frame(maxWidth: .infinity)
             if appModel.selectedName != nil {
                 Divider().padding(.top, 6)
-                HStack(spacing: 12) {
-                    // Catastralidad (funcional)
-                    Button {
-                        let willTurnOn = !appModel.showCatastralidad
-                        appModel.showCatastralidad.toggle()
-                        if willTurnOn {
-                            appModel.showLimitrofes = false
-                            appModel.showRiesgos = false
-                            appModel.showMejoras = false
+
+                VStack(spacing: 12) {
+                    // Fila 1: tres botones
+                    HStack(spacing: 12) {
+
+                        // Catastralidad
+                        Button {
+                            let willTurnOn = !appModel.showCatastralidad
+                            appModel.showCatastralidad.toggle()
+                            if willTurnOn {
+                                appModel.showLimitrofes = false
+                                appModel.showRiesgos = false
+                                appModel.showMejoras = false
+                            }
+                        } label: {
+                            let on = appModel.showCatastralidad
+                            HStack {
+                                Image(systemName: on ? "checkmark.circle.fill" : "square.on.square")
+                                    .symbolRenderingMode(.hierarchical)
+                                Text("Catastral")
+                                    .lineLimit(2)
+                                    .minimumScaleFactor(0.85)
+                                    .multilineTextAlignment(.center)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
                         }
-                    } label: {
-                        let on = appModel.showCatastralidad
-                        HStack {
-                            Image(
-                                systemName: on
-                                ? "checkmark.circle.fill"
-                                : "square.on.square"
-                            )
-                            .symbolRenderingMode(.hierarchical)
-                            Text("Catastral")
+                        .buttonStyle(.borderedProminent)
+                        .tint(appModel.showCatastralidad ? .green : .accentColor)
+
+                        // Limítrofes
+                        Button {
+                            let willTurnOn = !appModel.showLimitrofes
+                            appModel.showLimitrofes.toggle()
+                            if willTurnOn {
+                                appModel.showCatastralidad = false
+                                appModel.showRiesgos = false
+                                appModel.showMejoras = false
+                            }
+                        } label: {
+                            let on = appModel.showLimitrofes
+                            HStack {
+                                Image(systemName: on ? "checkmark.circle.fill" : "square.dashed")
+                                    .symbolRenderingMode(.hierarchical)
+                                Text("Limítrofes")
+                                    .lineLimit(2)
+                                    .minimumScaleFactor(0.85)
+                                    .multilineTextAlignment(.center)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
                         }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
+                        .buttonStyle(.borderedProminent)
+                        .tint(appModel.showLimitrofes ? .green : .accentColor)
+
+                        // Riesgos
+                        Button {
+                            let willTurnOn = !appModel.showRiesgos
+                            appModel.showRiesgos.toggle()
+                            if willTurnOn {
+                                appModel.showLimitrofes = false
+                                appModel.showCatastralidad = false
+                                appModel.showMejoras = false
+                            }
+                        } label: {
+                            let on = appModel.showRiesgos
+                            HStack {
+                                Image(systemName: on ? "checkmark.circle.fill" : "exclamationmark.triangle")
+                                    .symbolRenderingMode(.hierarchical)
+                                Text("Riesgos")
+                                    .lineLimit(2)
+                                    .minimumScaleFactor(0.85)
+                                    .multilineTextAlignment(.center)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(appModel.showRiesgos ? .red : .accentColor)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .tint(appModel.showCatastralidad ? .green : .accentColor)
-                    
-                    // Limítrofes (funcional)
-                    Button {
-                        let willTurnOn = !appModel.showLimitrofes
-                        appModel.showLimitrofes.toggle()
-                        if willTurnOn {
-                            appModel.showCatastralidad = false
-                            appModel.showRiesgos = false
-                            appModel.showMejoras = false
+
+                    // Fila 2: dos botones
+                    HStack(spacing: 12) {
+
+                        // Mejoras
+                        Button {
+                            let willTurnOn = !appModel.showMejoras
+                            appModel.showMejoras.toggle()
+                            if willTurnOn {
+                                appModel.showRiesgos = false
+                                appModel.showLimitrofes = false
+                                appModel.showCatastralidad = false
+                            }
+                        } label: {
+                            let on = appModel.showMejoras
+                            HStack {
+                                Image(systemName: on ? "checkmark.circle.fill" : "wrench.and.screwdriver")
+                                    .symbolRenderingMode(.hierarchical)
+                                Text("Mejoras")
+                                    .lineLimit(2)
+                                    .minimumScaleFactor(0.85)
+                                    .multilineTextAlignment(.center)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
                         }
-                    } label: {
-                        let on = appModel.showLimitrofes
-                        HStack {
-                            Image(
-                                systemName: on
-                                ? "checkmark.circle.fill" : "square.dashed"
-                            )
-                            .symbolRenderingMode(.hierarchical)
-                            Text("Limítrofes")
+                        .buttonStyle(.borderedProminent)
+                        .tint(appModel.showMejoras ? .mint : .accentColor)
+
+                        // 360
+                        Button {
+                            appModel.showPanorama360.toggle()
+                        } label: {
+                            let isOn = appModel.showPanorama360
+                            let title: String = {
+                                switch appModel.selectedName {
+                                case "Parque":  return isOn ? "Salir de Parque 360" : "Entrar a Parque 360"
+                                case "Cosecha": return isOn ? "Salir de Cosecha 360" : "Entrar a Cosecha 360"
+                                default:        return "Entrar a 360"
+                                }
+                            }()
+                            HStack {
+                                Image(systemName: isOn ? "checkmark.circle.fill" : "view.3d")
+                                Text(title)
+                                    .lineLimit(2)                 // ← permite 2 líneas
+                                    .minimumScaleFactor(0.85)     // ← reduce si hace falta
+                                    .multilineTextAlignment(.center)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
                         }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
+                        .buttonStyle(.borderedProminent)
+                        .tint(appModel.showPanorama360 ? .purple : .accentColor)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .tint(appModel.showLimitrofes ? .green : .accentColor)
-                    
-                    // Riesgos (funcional)
-                    Button {
-                        let willTurnOn = !appModel.showRiesgos
-                        appModel.showRiesgos.toggle()
-                        if willTurnOn {
-                            appModel.showLimitrofes = false
-                            appModel.showCatastralidad = false
-                            appModel.showMejoras = false
-                        }
-                    } label: {
-                        let on = appModel.showRiesgos
-                        HStack {
-                            Image(
-                                systemName: on
-                                ? "checkmark.circle.fill"
-                                : "exclamationmark.triangle"
-                            )
-                            .symbolRenderingMode(.hierarchical)
-                            Text("Riesgos")
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(appModel.showRiesgos ? .red : .accentColor)
-                    Button {
-                        let willTurnOn = !appModel.showMejoras
-                        appModel.showMejoras.toggle()
-                        if willTurnOn {
-                            appModel.showRiesgos = false
-                            appModel.showLimitrofes = false
-                            appModel.showCatastralidad = false
-                        }
-                    } label: {
-                        let on = appModel.showMejoras
-                        HStack {
-                            Image(
-                                systemName: on
-                                ? "checkmark.circle.fill"
-                                : "wrench.and.screwdriver"
-                            )
-                            .symbolRenderingMode(.hierarchical)
-                            Text("Mejoras")
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(appModel.showMejoras ? .mint : .accentColor)
                 }
-                .frame(maxWidth: 800, maxHeight: .infinity)
+                .frame(maxWidth: .infinity)
+
             }
         }.onAppear { appModel.mainWindowOpen = true }
             .onDisappear {
@@ -178,12 +212,9 @@ struct ContentView: View {
                 
                 Task { @MainActor in
                     guard appModel.lockWorldSpace == false else {
-                        // Bloqueado: NO cierres el Immersive Space.
-                        // Solo marca flags; el espacio seguirá vivo.
                         return
                     }
                     
-                    // (Solo si no está bloqueado) — tu limpieza previa:
                     appModel.showLimitrofes = false
                     appModel.showCatastralidad = false
                     appModel.showRiesgos = false
@@ -198,7 +229,7 @@ struct ContentView: View {
                 guard appModel.selectedName != nil, appModel.isShuttingDown == false else { return }
                 
                 Task { @MainActor in
-                    // Pequeño yield para evitar carrera con onDisappear/onAppear
+                    
                     await Task.yield()
                     let _ = await openImmersiveSpace(id: "WorldSpace")
                     appModel.worldSpaceOpen = true

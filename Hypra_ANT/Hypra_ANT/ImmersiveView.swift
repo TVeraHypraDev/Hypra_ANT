@@ -102,6 +102,7 @@ struct OverlaySetConfig {
     var mejorasModel: ModelConfig
     var panelImprove: PanelConfig
     var PanelTextImprove: String
+    var panorama360: ModelConfig
 }
 //MARK: Información de objetos
 let overlayConfigBySelection: [String: OverlaySetConfig] = [
@@ -141,7 +142,14 @@ let overlayConfigBySelection: [String: OverlaySetConfig] = [
                     topOffsetY: 0.4,
                     scale: SIMD3<Float>(10,10,10)
                 ),
-                PanelTextImprove: "Tanque de agua para limpieza de agua del río."
+                PanelTextImprove: "Tanque de agua para limpieza de agua del río.",
+                panorama360: .init(
+                        name: "Parque360",
+                        scale: SIMD3<Float>(10,10,10),   // suele necesitar esfera grande
+                        positionXZ: SIMD2<Float>(0,0),
+                        yawDeg: 0,
+                        deltaY: -5
+                    )
             ),
     
     "Cosecha":
@@ -179,7 +187,14 @@ let overlayConfigBySelection: [String: OverlaySetConfig] = [
                     topOffsetY: 0.4,
                     scale: SIMD3<Float>(10,10,10)
                 ),
-                PanelTextImprove: "Molino para optimización de productividad."
+                PanelTextImprove: "Molino para optimización de productividad.",
+                panorama360: .init(
+                        name: "Cosecha360",
+                        scale: SIMD3<Float>(10,10,10),
+                        positionXZ: SIMD2<Float>(0,0),
+                        yawDeg: 0,
+                        deltaY: -5
+                    )
             )
 ]
 
@@ -232,11 +247,16 @@ struct ImmersiveView: View {
     @State private var mejorasPanel = Entity()
     
     @State private var needsAnchorReadd = false
+    
+    @StateObject private var panoCtrl = Panorama360Controller()
+    @State private var panoNeedsReadd = false
+
 
     var body: some View {
         RealityView { content in
             content.add(anchor)
             content.add(headAnchor)
+            content.add(panoCtrl.anchor)
             
             // Panel que seguirá la mano
             panel.components.set(BillboardComponent())
@@ -261,6 +281,15 @@ struct ImmersiveView: View {
             if let name = appModel.selectedName {
                 await loadOrReplaceModel(name: name)
             }
+            if appModel.showPanorama360 {
+                    Task { @MainActor in
+                        guard
+                            let sel = appModel.selectedName,
+                            let cfg = overlayConfigBySelection[sel]?.panorama360
+                        else { return }
+                        await panoCtrl.ensure(selection: sel, config: cfg, bundle: realityKitContentBundle, headAnchor: headAnchor)
+                    }
+                }
         }.onAppear {
             appModel.worldSpaceOpen = true
             log.info("ImmersiveView onAppear")
@@ -312,6 +341,32 @@ struct ImmersiveView: View {
                     removeMejorasModel()
                 }
             }
+        }.onChange(of: appModel.showPanorama360) { on in
+            if on {
+                Task { @MainActor in
+                    // Oculta temporalmente el entorno normal
+                    currentEntity?.isEnabled = false
+
+                    // Apaga overlays (opcional, recomendado para evitar solapados)
+                    appModel.showLimitrofes = false
+                    appModel.showCatastralidad = false
+                    appModel.showRiesgos = false
+                    appModel.showMejoras = false
+
+                    guard
+                        let sel = appModel.selectedName,
+                        let cfg = overlayConfigBySelection[sel]?.panorama360
+                    else { return }
+
+                    await panoCtrl.ensure(selection: sel, config: cfg, bundle: realityKitContentBundle, headAnchor: headAnchor)
+                }
+            } else {
+                Task { @MainActor in
+                    panoCtrl.remove()
+                    // Vuelve a mostrar el entorno
+                    currentEntity?.isEnabled = true
+                }
+            }
         }
         .onChange(of: appModel.mainWindowOpen) { isOpen in
             if !isOpen {
@@ -322,7 +377,9 @@ struct ImmersiveView: View {
             }
         }.onReceive(NotificationCenter.default.publisher(for: .teardownReality)) { _ in
             Task { @MainActor in
-                
+                panoCtrl.remove()
+                panoCtrl.anchor = AnchorEntity(.world(transform: matrix_identity_float4x4))
+                panoNeedsReadd = true
                 removeLimitrofesBox()
                 removeCatastralPanel(); removeCatastralBox()
                 removeRiesgosPanel();  removeRiesgosSphere()
@@ -842,6 +899,9 @@ struct ImmersiveView: View {
             ensureMejorasPanel()
         }
         
+        if appModel.showPanorama360 {
+            currentEntity?.isEnabled = false
+        }
         
     }
     

@@ -126,5 +126,21 @@ def Xform "Root"
         float3 xformOp:translate = (0, 0.53208196, 0.48943436)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
     }
+
+    def "Parque360" (
+        active = true
+        prepend references = @Parque360.usdz@</object>
+    )
+    {
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+    }
+
+    def "Cosecha360" (
+        active = true
+        prepend references = @Cosecha360.usdz@</object>
+    )
+    {
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+    }
 }
 
