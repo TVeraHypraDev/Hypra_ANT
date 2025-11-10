@@ -773,7 +773,7 @@ struct ImmersiveView: View {
         
         // Crear nuevo
         let mat = SimpleMaterial(
-            color: .init(red: 1, green: 1, blue: 1, alpha: 0.02),
+            color: .init(red: 0.1, green: 0.0, blue: 0.4, alpha: 0.5),
             roughness: 0.05,
             isMetallic: false
         )
