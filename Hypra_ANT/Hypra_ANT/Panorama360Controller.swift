@@ -22,24 +22,25 @@ final class Panorama360Controller: ObservableObject {
         bundle: Bundle,
         headAnchor: AnchorEntity
     ) async {
-        // Coloca el anchor en la cabeza (sin offset), para que el 360 te envuelva
+        
         let headWorld = headAnchor.transformMatrix(relativeTo: nil)
         anchor.setTransformMatrix(headWorld, relativeTo: nil)
 
-        // Si ya está cargado el correcto, solo re-aplica transform
+        
         if let e = entity, loadedName == config.name {
             applyTransform(e, cfg: config)
             e.isEnabled = true
             return
         }
 
-        // Si hay otro cargado, quítalo
+        
         remove()
 
         do {
             let e = try await Entity(named: config.name, in: bundle)
             e.name = "Panorama360:\(config.name)"
-            e.generateCollisionShapes(recursive: false) // normalmente no necesitas colisiones
+            e.generateCollisionShapes(recursive: false)
+            
             anchor.addChild(e)
             applyTransform(e, cfg: config)
             entity = e
@@ -58,14 +59,14 @@ final class Panorama360Controller: ObservableObject {
     }
 
     private func applyTransform(_ e: Entity, cfg: ModelConfig) {
-        // Escala global del sphere/skybox USDZ
+        
         e.scale = cfg.scale
 
-        // Posición: X/Z del config; Y = Y actual + deltaY
+        
         let y = e.position.y
         e.position = .init(cfg.positionXZ.x, y + cfg.deltaY, cfg.positionXZ.y)
 
-        // Yaw
+        
         let rad = cfg.yawDeg * .pi / 180
         e.orientation = simd_quatf(angle: rad, axis: [0,1,0])
     }
