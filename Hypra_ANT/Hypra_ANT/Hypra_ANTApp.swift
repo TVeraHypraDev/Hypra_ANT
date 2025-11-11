@@ -16,6 +16,14 @@ struct Hypra_ANTApp: App {
                         openWindow(id: "main")
                     }
                 }
+        WindowGroup(id: "layers") {
+                    LayersView().environmentObject(appModel)
+                        .onAppear { appModel.layersWindowOpen = true }
+                        .onDisappear { appModel.layersWindowOpen = false }
+                }
+                .windowResizability(.contentSize)
+                .defaultSize(width: 420, height: 220)
+        
         ImmersiveSpace(id: "WorldSpace") {
             ImmersiveView().environmentObject(appModel)
         }

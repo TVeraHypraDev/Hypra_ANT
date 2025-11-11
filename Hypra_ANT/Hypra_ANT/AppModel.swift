@@ -3,6 +3,14 @@ import Foundation
 import RealityKit
 import SwiftUI
 
+enum LayerKind: String, CaseIterable, Identifiable {
+    case reservaForestal = "Reserva forestal"
+    case agricola        = "Agrícola"
+    case capa3           = "Capa 3"
+
+    var id: String { rawValue }
+}
+
 final class AppModel: ObservableObject {
     
     
@@ -24,6 +32,8 @@ final class AppModel: ObservableObject {
     
     @Published var lockWorldSpace = true
     
-    // Para evitar reabrir durante un apagado explícito (si lo usas)
     @Published var isShuttingDown = false
+    
+    @Published var layersWindowOpen = false
+        @Published var activeLayer: LayerKind? = nil
 }

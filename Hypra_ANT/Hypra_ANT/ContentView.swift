@@ -6,6 +6,8 @@ private let log = Logger(subsystem: "Hypra_ANT", category: "Debug")
 struct ContentView: View {
     @Environment(\.openImmersiveSpace) private var openImmersiveSpace
     @EnvironmentObject private var appModel: AppModel
+    @Environment(\.openWindow) private var openWindow
+    @Environment(\.dismissWindow) private var dismissWindow
     @Environment(\.dismissImmersiveSpace) private var dismissImmersiveSpace
     
     private let options = ["Parque", "Cosecha"]
@@ -201,6 +203,22 @@ struct ContentView: View {
                         }
                         .buttonStyle(.borderedProminent)
                         .tint(appModel.showPanorama360 ? .purple : .accentColor)
+                        Button {
+                                            if appModel.layersWindowOpen {
+                                                dismissWindow(id: "layers")
+                                                appModel.layersWindowOpen = false
+                                            } else {
+                                                openWindow(id: "layers")
+                                                appModel.layersWindowOpen = true
+                                            }
+                                        } label: {
+                                            Label(appModel.layersWindowOpen ? "Ocultar capas" : "Capas",
+                                                  systemImage: appModel.layersWindowOpen ? "eye.slash" : "square.stack.3d.up")
+                                                .frame(maxWidth: .infinity)
+                                                .padding(.vertical, 10)
+                                        }
+                                        .buttonStyle(.borderedProminent)
+                                        .tint(appModel.layersWindowOpen ? .orange : .accentColor)
                     }
                 }
                 .frame(maxWidth: .infinity)

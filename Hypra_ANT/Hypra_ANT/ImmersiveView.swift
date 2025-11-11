@@ -103,6 +103,8 @@ struct OverlaySetConfig {
     var panelImprove: PanelConfig
     var PanelTextImprove: String
     var panorama360: ModelConfig
+    
+    var layers: [LayerKind: BoxConfig]
 }
 //MARK: Información de objetos
 let overlayConfigBySelection: [String: OverlaySetConfig] = [
@@ -149,7 +151,26 @@ let overlayConfigBySelection: [String: OverlaySetConfig] = [
                         positionXZ: SIMD2<Float>(0,0),
                         yawDeg: 0,
                         deltaY: -5
-                    )
+                    ),
+                layers: [
+                            .reservaForestal : .init(
+                                scale:      SIMD3<Float>(4.5, 0.4, 5.0),
+                                positionXZ: SIMD2<Float>(0.75, 0.2),
+                                yawDeg:     353
+                            ),
+                            /*
+                            .agricola        : .init(
+                                scale:      SIMD3<Float>(4.5, 0.4, 5.0),
+                                positionXZ: SIMD2<Float>(0.75, 0.2),
+                                yawDeg:     353
+                            ),
+                            .capa3           : .init(
+                                scale:      SIMD3<Float>(4.5, 0.4, 5.0),
+                                positionXZ: SIMD2<Float>(0.75, 0.2),
+                                yawDeg:     353
+                            )
+                             */
+                        ]
             ),
     
     "Cosecha":
@@ -194,7 +215,24 @@ let overlayConfigBySelection: [String: OverlaySetConfig] = [
                         positionXZ: SIMD2<Float>(0,0),
                         yawDeg: 0,
                         deltaY: -5
-                    )
+                    ),
+                layers: [
+                            .reservaForestal : .init(
+                                scale:      SIMD3<Float>(2.0, 0.3, 1.5),
+                                positionXZ: SIMD2<Float>(1.0, 0.4),
+                                yawDeg:     92
+                            ),
+                            .agricola        : .init(
+                                scale:      SIMD3<Float>(0.9, 0.3, 1.0),
+                                positionXZ: SIMD2<Float>(-1.0, -0.4),
+                                yawDeg:     92
+                            ),
+                            .capa3           : .init(
+                                scale:      SIMD3<Float>(2.0, 0.3, 2.7),
+                                positionXZ: SIMD2<Float>(-0.05, 0.4),
+                                yawDeg:     92
+                            )
+                        ]
             )
 ]
 
@@ -250,8 +288,10 @@ struct ImmersiveView: View {
     
     @StateObject private var panoCtrl = Panorama360Controller()
     @State private var panoNeedsReadd = false
-
-
+    
+    
+    @State private var layerBox: ModelEntity? = nil
+    
     var body: some View {
         RealityView { content in
             content.add(anchor)
@@ -270,12 +310,17 @@ struct ImmersiveView: View {
                 }
                 needsAnchorReadd = false
             }
+        }.onChange(of: appModel.activeLayer) { kind in
+            Task { @MainActor in
+                if let k = kind { ensureLayerBox(kind: k) } else { removeLayerBox() }
+            }
         }
-        
         .onChange(of: showHandPanel) { newValue in
             panel.isEnabled = newValue
         }.onChange(of: appModel.selectedName) { _ in
             refreshPanelView()
+            appModel.activeLayer = nil
+            removeLayerBox()
         }
         .task(id: appModel.selectedName) {
             if let name = appModel.selectedName {
@@ -444,6 +489,69 @@ struct ImmersiveView: View {
 
         
     }
+    
+    
+    //MARK: Todo de capas
+    
+    @MainActor
+    private func applyLayerPose(_ box: ModelEntity, cfg: BoxConfig) {
+        box.scale = cfg.scale
+        let keepY = box.position.y
+        box.position = .init(cfg.positionXZ.x, keepY, cfg.positionXZ.y)
+        let rad = cfg.yawDeg * .pi / 180
+        box.orientation = simd_quatf(angle: rad, axis: [0,1,0])
+    }
+
+    @MainActor
+    private func applyLayerMaterial(_ box: ModelEntity, kind: LayerKind) {
+        let color: SIMD4<Float>
+        switch kind {
+        case .reservaForestal: color = SIMD4(0.0, 0.5, 0.1, 0.5)
+        case .agricola:        color = SIMD4(0.6, 0.5, 0.0, 0.5)
+        case .capa3:           color = SIMD4(0.1, 0.2, 0.7, 0.5)
+        }
+        let mat = SimpleMaterial(
+            color: .init(red: CGFloat(color.x), green: CGFloat(color.y), blue: CGFloat(color.z), alpha: CGFloat(color.w)),
+            roughness: 0.05, isMetallic: false
+        )
+        box.model?.materials = [mat]
+    }
+
+    @MainActor
+    private func removeLayerBox() {
+        layerBox?.removeFromParent()
+        layerBox = nil
+    }
+
+
+    @MainActor
+    private func ensureLayerBox(kind: LayerKind) {
+        guard let parent = currentEntity,
+              let sel = appModel.selectedName,
+              let cfg = overlayConfigBySelection[sel]?.layers[kind]   // 👈 CENTRALIZADO
+        else {
+            removeLayerBox()
+            return
+        }
+
+        if let box = layerBox {
+            if box.parent != parent { box.removeFromParent(); parent.addChild(box) }
+            applyLayerPose(box, cfg: cfg)
+            applyLayerMaterial(box, kind: kind)
+            box.isEnabled = true
+            return
+        }
+
+        let mesh = MeshResource.generateBox(width: 1, height: 1, depth: 1)
+        let box  = ModelEntity(mesh: mesh, materials: [])
+        box.name = "LayerBox"
+        parent.addChild(box)
+        applyLayerPose(box, cfg: cfg)
+        applyLayerMaterial(box, kind: kind)
+        layerBox = box
+        box.isEnabled = true
+    }
+
     
     //MARK: Todo de Mejoras
     
