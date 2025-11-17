@@ -158,17 +158,42 @@ let overlayConfigBySelection: [String: OverlaySetConfig] = [
                                 positionXZ: SIMD2<Float>(0.75, 0.2),
                                 yawDeg:     353
                             ),
-                            /*
-                            .agricola        : .init(
+                            .agua          : .init(
                                 scale:      SIMD3<Float>(4.5, 0.4, 5.0),
                                 positionXZ: SIMD2<Float>(0.75, 0.2),
                                 yawDeg:     353
                             ),
-                            .capa3           : .init(
+                            .ambiental         : .init(
                                 scale:      SIMD3<Float>(4.5, 0.4, 5.0),
                                 positionXZ: SIMD2<Float>(0.75, 0.2),
                                 yawDeg:     353
+                            ),
+                            .politica         : .init(
+                                scale:      SIMD3<Float>(0.5, 0.5, 5.0),
+                                positionXZ: SIMD2<Float>(-1.79, 0.0),
+                                yawDeg:     353
+                            ),
+                            .usoSubsuelo         : .init(
+                                scale:      SIMD3<Float>(1.5, 0.4, 1.5),
+                                positionXZ: SIMD2<Float>(0.75, -1.5),
+                                yawDeg:     353
                             )
+                            /*
+                             .agricola        : .init(
+                                 scale:      SIMD3<Float>(0.9, 0.3, 1.0),
+                                 positionXZ: SIMD2<Float>(-1.0, -0.4),
+                                 yawDeg:     92
+                             ),
+                             .ganaderia : .init(
+                                 scale:      SIMD3<Float>(2.0, 0.3, 1.5),
+                                 positionXZ: SIMD2<Float>(1.0, 0.4),
+                                 yawDeg:     92
+                             ),
+                             .zonasEtnicas        : .init(
+                                 scale:      SIMD3<Float>(0.9, 0.3, 1.0),
+                                 positionXZ: SIMD2<Float>(-1.0, -0.4),
+                                 yawDeg:     92
+                             ),
                              */
                         ]
             ),
@@ -224,14 +249,41 @@ let overlayConfigBySelection: [String: OverlaySetConfig] = [
                             ),
                             .agricola        : .init(
                                 scale:      SIMD3<Float>(0.9, 0.3, 1.0),
+                                positionXZ: SIMD2<Float>(-1.0, 0.5),
+                                yawDeg:     92
+                            ),
+                            .ambiental         : .init(
+                                scale:      SIMD3<Float>(2.0, 0.3, 1.5),
+                                positionXZ: SIMD2<Float>(1.0, 0.4),
+                                yawDeg:     92
+                            ),
+                            .ganaderia : .init(
+                                scale:      SIMD3<Float>(0.9, 0.3, 1.0),
                                 positionXZ: SIMD2<Float>(-1.0, -0.4),
                                 yawDeg:     92
                             ),
-                            .capa3           : .init(
+                            .zonasEtnicas        : .init(
+                                scale:      SIMD3<Float>(0.4, 0.2, 5.0),
+                                positionXZ: SIMD2<Float>(-0.7, -1.0),
+                                yawDeg:     92
+                            ),
+                            .politica         : .init(
+                                scale:      SIMD3<Float>(0.2, 0.2, 5.0),
+                                positionXZ: SIMD2<Float>(-0.7, -0.72),
+                                yawDeg:     92
+                            ),
+                            .usoSubsuelo         : .init(
+                                scale:      SIMD3<Float>(0.5, 0.3, 0.5),
+                                positionXZ: SIMD2<Float>(0.0, 0.5),
+                                yawDeg:     92
+                            )
+                            /*
+                            .agua          : .init(
                                 scale:      SIMD3<Float>(2.0, 0.3, 2.7),
                                 positionXZ: SIMD2<Float>(-0.05, 0.4),
                                 yawDeg:     92
-                            )
+                            ),
+                             */
                         ]
             )
 ]
@@ -508,7 +560,13 @@ struct ImmersiveView: View {
         switch kind {
         case .reservaForestal: color = SIMD4(0.0, 0.5, 0.1, 0.5)
         case .agricola:        color = SIMD4(0.6, 0.5, 0.0, 0.5)
-        case .capa3:           color = SIMD4(0.1, 0.2, 0.7, 0.5)
+        case .agua:           color = SIMD4(0.1, 0.2, 0.7, 0.5)
+        case .ganaderia: color = SIMD4(0.1, 0.2, 0.7, 0.5)
+        case .zonasEtnicas: color = SIMD4(0.0, 0.5, 0.1, 0.5)
+        case .usoSubsuelo:        color = SIMD4(0.1, 0.2, 0.7, 0.5)
+        case .politica:           color = SIMD4(0.5, 0.1, 0.1, 0.5)
+        case .ambiental: color = SIMD4(0.0, 0.5, 0.1, 0.5)
+                
         }
         let mat = SimpleMaterial(
             color: .init(red: CGFloat(color.x), green: CGFloat(color.y), blue: CGFloat(color.z), alpha: CGFloat(color.w)),

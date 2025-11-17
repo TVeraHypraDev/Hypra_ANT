@@ -4,9 +4,24 @@ import RealityKit
 import SwiftUI
 
 enum LayerKind: String, CaseIterable, Identifiable {
-    case reservaForestal = "Reserva forestal"
+    /* Los tipos de capas son :
+     X Zonas Etnicas
+     X Política
+     Uso de Suelo: X Agricultura, X Ganadería
+     X Uso de subsuelo
+     X Ambiental
+     X Agua
+     X Reserva Forestal
+     */
+    
+    case reservaForestal = "Reserva Forestal"
     case agricola        = "Agrícola"
-    case capa3           = "Capa 3"
+    case ganaderia           = "Ganadería"
+    case zonasEtnicas = "Zonas Étnicas"
+    case politica        = "Política"
+    case usoSubsuelo          = "Uso del Subsuelo"
+    case ambiental = "Ambiental"
+    case agua        = "Agua"
 
     var id: String { rawValue }
 }

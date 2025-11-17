@@ -18,7 +18,7 @@ struct LayersView: View {
         return Array(dict.keys)
     }
 
-    private let layerOrder: [LayerKind] = [.reservaForestal, .agricola, .capa3]
+    private let layerOrder: [LayerKind] = [.reservaForestal, .agricola, .ganaderia, .zonasEtnicas, .politica, .usoSubsuelo, .ambiental, .agua]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
